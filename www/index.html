@@ -1,0 +1,91 @@
+<html>
+  <head>
+    <title>Who dis?</title>
+  </head>
+
+  <body>
+    <h1>Who is this?</h1>
+
+    <input type="file" id="analyze"/>
+    <canvas width="500" height="500" id="canvas" />
+
+  </body>
+
+  <script src="/js/face-api.js"></script>
+  <script type="text/javascript">
+  let ready = false;
+  let labeledFaceDescriptors;
+
+  const main = async () => {
+
+    let faceData = await fetch(`/facedata`).then(r => r.json());
+    const MODELS_PATH = `/models`;
+    await faceapi.loadSsdMobilenetv1Model(MODELS_PATH);
+    await faceapi.loadFaceLandmarkModel(MODELS_PATH);
+    await faceapi.loadFaceRecognitionModel(MODELS_PATH);
+    await faceapi.loadFaceExpressionModel(MODELS_PATH);
+
+    labeledFaceDescriptors = faceData.map(desc => {
+      // let arr = desc.descriptors.map(fd => {
+      //   return new Float32Array([...Object.values(fd)]); 
+      // });
+      let arr = Float32Array.from(desc.descriptors);// new Float32Array([...desc.descriptors])
+      return new faceapi.LabeledFaceDescriptors(desc.name, [arr]);
+    });
+
+    ready = true;
+  };
+
+  main();
+
+  let file = document.querySelector("#analyze");
+
+  const loadImage = () => {  
+    if (!ready) {
+      alert("Models and configuration not loaded yet, please wait a minute");
+      return;
+    }
+    let canvas = document.querySelector("canvas");
+    let ctx = canvas.getContext("2d");
+
+    let reader = new FileReader();
+    reader.onload = function(event){
+        let img = new Image();
+        img.onload = async function(){
+          let imageRatio = img.width / img.height;
+          canvas.height = 500;
+          canvas.width = 500 * imageRatio;
+          ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, canvas.width, canvas.height);
+          let input = img;
+          let fullFaceDescriptions = await faceapi
+            .detectAllFaces(input)
+            .withFaceLandmarks()
+            .withFaceDescriptors()
+            .withFaceExpressions();
+          let dim = new faceapi.Dimensions(canvas.width, canvas.height);
+          fullFaceDescriptions = faceapi.resizeResults(fullFaceDescriptions, dim);
+
+          const maxDescriptorDistance = 0.6;
+          const faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, maxDescriptorDistance);
+          
+          const results = fullFaceDescriptions.map(fd => faceMatcher.findBestMatch(fd.descriptor));
+          results.forEach((bestMatch, i) => {
+            const box = fullFaceDescriptions[i].detection.box;
+            const text = bestMatch.toString();
+            const drawBox = new faceapi.draw.DrawBox(box, { label: text });
+            drawBox.draw(canvas);
+          });
+        }
+        img.src = event.target.result;
+    }
+    if (file) {
+      reader.readAsDataURL(file.files[0]);
+    } 
+  }
+
+
+  file.addEventListener("change", loadImage);
+
+  </script>
+
+  </html>
