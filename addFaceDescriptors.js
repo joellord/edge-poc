@@ -9,8 +9,8 @@ import fetch from "node-fetch";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MODELS_PATH = `${__dirname}/models`;
-const SOURCE_FILE = "short.json";
-const EVENT_ID = "CodePaLOUsa";
+const SOURCE_FILE = "sample.json";
+const EVENT_ID = "Event ID";
 
 const peopleData = JSON.parse(fs.readFileSync(SOURCE_FILE).toString());
 

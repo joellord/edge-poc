@@ -5,47 +5,51 @@ import { fileURLToPath } from "url";
 import { MongoClient } from "mongodb";
 import faceapi from "face-api.js";
 import nodeCanvas from "canvas";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const wwwPath = `${__dirname}/www`;
 const MODELS_PATH = `${__dirname}/models`;
-const DB_SERVER = process.env.DB_SERVER || "";
 const PORT = process.env.PORT || 3000;
 
-const MONGODB_USER = "";
-const MONGODB_PASS = "";
-const MONGODB_CLUSTER = "";
+// Connect to MongoDB 
+const { MONGODB_USER, MONGODB_PASS, MONGODB_CLUSTER } = process.env;
+if (!MONGODB_CLUSTER) {
+  console.error("No MongoDB cluster was specified. Exiting.");
+  process.exit(1);
+}
 
 const mongoClient = await MongoClient.connect(
   `mongodb+srv://${MONGODB_USER}:${MONGODB_PASS}@${MONGODB_CLUSTER}.mongodb.net/edge-poc?authSource=admin&replicaSet=atlas-v6xmes-shard-0&readPreference=primary&appname=MongoDB%20Compass&ssl=true`,
   { useNewUrlParser: true, useUnifiedTopology: true });
 
+// Load face recognition models
 await faceapi.nets.ssdMobilenetv1.loadFromDisk(MODELS_PATH);
 await faceapi.nets.faceLandmark68Net.loadFromDisk(MODELS_PATH);
 await faceapi.nets.faceRecognitionNet.loadFromDisk(MODELS_PATH);
+
+// Use Node Canvas and monkey patch FaceAPI.js
 const { Canvas, Image, ImageData } = nodeCanvas;
 faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
 
+
+// Initialize Server
 const app = express();
 
 app.use(cors());
+app.use(express.static(wwwPath));
 app.use(express.json({limit: '50mb'}));
 
 app.get("/", (req, res) => {
   res.sendFile(`${wwwPath}/index.html`);
 });
 
-app.get("/config", (req, res) => {
-  res.send({
-    DB_SERVER
-  }).status(200);
-});
-
 app.post("/detection", async (req, res) => {
   console.log("Face detection requested");
-  let imgData = req.body.imgData;
 
-  //Load image in a node-canvas
+  //Load image in a node-canvas with a 500px height. Width is calculated to preserve ration
   let img = new Image();
   img.src = req.body.imgData;
   let canvas = new Canvas();
@@ -54,9 +58,8 @@ app.post("/detection", async (req, res) => {
   canvas.width = 500 * imageRatio;
   let ctx = canvas.getContext("2d");
   ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, canvas.width, canvas.height);
-
   
-  //Find the face descriptors on this image
+  //Find the face descriptors for each face on this image
   let fullFaceDescriptions = await faceapi
     .detectAllFaces(img)
     .withFaceLandmarks()
@@ -80,7 +83,7 @@ app.post("/detection", async (req, res) => {
   let cursor = coll.find(filter, { projection: projection });
   let faceData = await cursor.toArray();
 
-
+  // Create an array of existing face descriptors
   let labeledFaceDescriptors = faceData.map(desc => {
     let arr = Float32Array.from(desc.descriptors);
     return new faceapi.LabeledFaceDescriptors(desc.name, [arr]);
@@ -92,6 +95,7 @@ app.post("/detection", async (req, res) => {
 
   const results = fullFaceDescriptions.map(fd => faceMatcher.findBestMatch(fd.descriptor));
 
+  // Format data to send back to the client
   let responseObject = [];
   results.forEach((bestMatch, i) => {
     let obj = {
@@ -105,7 +109,5 @@ app.post("/detection", async (req, res) => {
   //Return the matching name
   res.send(responseObject).status(200);
 });
-
-app.use(express.static(wwwPath));
 
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`))
