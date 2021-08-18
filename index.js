@@ -7,6 +7,10 @@ import faceapi from "face-api.js";
 import nodeCanvas from "canvas";
 import dotenv from "dotenv";
 
+const MONGODB_USER = "blog";
+const MONGODB_PASS = "blog";
+const MONGODB_CLUSTER = "cluster0.2grje";
+
 dotenv.config();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -14,8 +18,8 @@ const wwwPath = `${__dirname}/www`;
 const MODELS_PATH = `${__dirname}/models`;
 const PORT = process.env.PORT || 3000;
 
-// Connect to MongoDB 
-const { MONGODB_USER, MONGODB_PASS, MONGODB_CLUSTER } = process.env;
+// Connect to MongoDB
+
 if (!MONGODB_CLUSTER) {
   console.error("No MongoDB cluster was specified. Exiting.");
   process.exit(1);
@@ -23,7 +27,8 @@ if (!MONGODB_CLUSTER) {
 
 const mongoClient = await MongoClient.connect(
   `mongodb+srv://${MONGODB_USER}:${MONGODB_PASS}@${MONGODB_CLUSTER}.mongodb.net/edge-poc?authSource=admin&replicaSet=atlas-v6xmes-shard-0&readPreference=primary&appname=MongoDB%20Compass&ssl=true`,
-  { useNewUrlParser: true, useUnifiedTopology: true });
+  { useNewUrlParser: true, useUnifiedTopology: true }
+);
 
 // Load face recognition models
 await faceapi.nets.ssdMobilenetv1.loadFromDisk(MODELS_PATH);
@@ -34,13 +39,12 @@ await faceapi.nets.faceRecognitionNet.loadFromDisk(MODELS_PATH);
 const { Canvas, Image, ImageData } = nodeCanvas;
 faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
 
-
 // Initialize Server
 const app = express();
 
 app.use(cors());
 app.use(express.static(wwwPath));
-app.use(express.json({limit: '50mb'}));
+app.use(express.json({ limit: "50mb" }));
 
 app.get("/", (req, res) => {
   res.sendFile(`${wwwPath}/index.html`);
@@ -57,8 +61,18 @@ app.post("/detection", async (req, res) => {
   canvas.height = 500;
   canvas.width = 500 * imageRatio;
   let ctx = canvas.getContext("2d");
-  ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, canvas.width, canvas.height);
-  
+  ctx.drawImage(
+    img,
+    0,
+    0,
+    img.width,
+    img.height,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
   //Find the face descriptors for each face on this image
   let fullFaceDescriptions = await faceapi
     .detectAllFaces(img)
@@ -69,31 +83,36 @@ app.post("/detection", async (req, res) => {
 
   //Fetch the face descriptors from MongoDB
   const filter = {
-    'descriptors': {
-      '$exists': true
-    }, 
-    'eventId': 'CodePaLOUsa'
+    descriptors: {
+      $exists: true,
+    },
+    eventId: "CodePaLOUsa",
   };
   const projection = {
-    'name': 1, 
-    'descriptors': 1, 
-    '_id': 0
+    name: 1,
+    descriptors: 1,
+    _id: 0,
   };
-  let coll = mongoClient.db('edge-poc').collection('people');
+  let coll = mongoClient.db("edge-poc").collection("people");
   let cursor = coll.find(filter, { projection: projection });
   let faceData = await cursor.toArray();
 
   // Create an array of existing face descriptors
-  let labeledFaceDescriptors = faceData.map(desc => {
+  let labeledFaceDescriptors = faceData.map((desc) => {
     let arr = Float32Array.from(desc.descriptors);
     return new faceapi.LabeledFaceDescriptors(desc.name, [arr]);
   });
 
   //Find the best matches using the faceMatcher
   const maxDescriptorDistance = 0.6;
-  const faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, maxDescriptorDistance);
+  const faceMatcher = new faceapi.FaceMatcher(
+    labeledFaceDescriptors,
+    maxDescriptorDistance
+  );
 
-  const results = fullFaceDescriptions.map(fd => faceMatcher.findBestMatch(fd.descriptor));
+  const results = fullFaceDescriptions.map((fd) =>
+    faceMatcher.findBestMatch(fd.descriptor)
+  );
 
   // Format data to send back to the client
   let responseObject = [];
@@ -101,7 +120,7 @@ app.post("/detection", async (req, res) => {
     let obj = {
       name: bestMatch.label,
       distance: bestMatch.distsance,
-      box: fullFaceDescriptions[i].detection.box
+      box: fullFaceDescriptions[i].detection.box,
     };
     responseObject.push(obj);
   });
@@ -110,4 +129,4 @@ app.post("/detection", async (req, res) => {
   res.send(responseObject).status(200);
 });
 
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`))
+app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
