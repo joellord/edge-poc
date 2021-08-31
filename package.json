@@ -12,6 +12,7 @@
   "license": "MIT",
   "dependencies": {
     "@tensorflow/tfjs-node": "^3.8.0",
+    "@tensorflow/tfjs-node-gpu": "^3.8.0",
     "assert": "^2.0.0",
     "canvas": "^2.8.0",
     "canvas-confetti": "^1.4.0",

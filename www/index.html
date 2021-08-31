@@ -103,7 +103,10 @@
       <div class="text-center">
         <pre id="response"></pre>
         <h2 id="athleteName" class="text-2xl font-bold mb-5"></h2>
-        <ul id="medals" class="grid grid-cols-3 gap-12 items-stretch"></ul>
+        <ul
+          id="medals"
+          class="grid grid-cols-1 lg:grid-cols-3 gap-12 items-stretch"
+        ></ul>
       </div>
 
       <footer class="text-center">
@@ -167,6 +170,8 @@
             resp.json();
           });
 
+          console.log(response);
+
           let data = {
             imgSrc:
               "https://www.usmagazine.com/wp-content/uploads/2021/07/Gymnast-Sunisa-Lee-Wins-All-Around-Gold-Tokyo-Olympics-slide.jpg?w=900&quality=86&strip=all",
@@ -184,6 +189,19 @@
               {
                 type: "bronze",
                 event: "Women's uneven bars · Artistic gymnastics",
+              },
+              {
+                type: "bronze",
+                event: "Women's uneven bars · Artistic gymnastics",
+              },
+              {
+                type: "bronze",
+                event: "Women's uneven bars · Artistic gymnastics",
+              },
+              {
+                type: "gold",
+                event:
+                  "Women's artistic individual all-around · Artistic gymnastics",
               },
             ],
           };

@@ -126,6 +126,7 @@ app.post("/detection", async (req, res) => {
   });
 
   //Return the matching name
+  console.log(responseObject);
   res.send(responseObject).status(200);
 });
 
