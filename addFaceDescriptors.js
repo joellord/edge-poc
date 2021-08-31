@@ -10,7 +10,7 @@ import fetch from "node-fetch";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MODELS_PATH = `${__dirname}/models`;
 const SOURCE_FILE = "short.json";
-const EVENT_ID = "Event ID";
+const EVENT_ID = "Tokyo2020";
 
 const peopleData = JSON.parse(fs.readFileSync(SOURCE_FILE).toString());
 
@@ -52,7 +52,7 @@ const getDescriptors = async (filename) => {
       return;
     }
 
-    faceDescriptors = fullFaceDescription.descriptor;
+    faceDescriptors = Array.from(fullFaceDescription.descriptor);
   } catch (e) {
     console.log(e);
   }

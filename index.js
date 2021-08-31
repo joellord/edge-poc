@@ -53,7 +53,7 @@ app.get("/", (req, res) => {
 app.post("/detection", async (req, res) => {
   console.log("Face detection requested");
 
-  //Load image in a node-canvas with a 500px height. Width is calculated to preserve ration
+  //Load image in a node-canvas with a 500px height. Width is calculated to preserve ratio
   let img = new Image();
   img.src = req.body.imgData;
   let canvas = new Canvas();
@@ -85,12 +85,12 @@ app.post("/detection", async (req, res) => {
   const filter = {
     descriptors: {
       $exists: true,
-    },
-    eventId: "CodePaLOUsa",
+    }
   };
   const projection = {
     name: 1,
     descriptors: 1,
+    medals: 1,
     _id: 0,
   };
   let coll = mongoClient.db("edge-poc").collection("people");
@@ -117,9 +117,12 @@ app.post("/detection", async (req, res) => {
   // Format data to send back to the client
   let responseObject = [];
   results.forEach((bestMatch, i) => {
+    let personMatched = faceData.find(p => p.name === bestMatch.label);
+    let medals = personMatched ? personMatched.medals : [];
     let obj = {
       name: bestMatch.label,
-      distance: bestMatch.distsance,
+      distance: bestMatch.distance,
+      medals: medals,
       box: fullFaceDescriptions[i].detection.box,
     };
     responseObject.push(obj);

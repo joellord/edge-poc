@@ -166,46 +166,11 @@
             },
             body: JSON.stringify({ imgData }),
           }).then((resp) => {
-            runFireworks();
-            resp.json();
+            return resp.json();
           });
 
-          console.log(response);
-
-          let data = {
-            imgSrc:
-              "https://www.usmagazine.com/wp-content/uploads/2021/07/Gymnast-Sunisa-Lee-Wins-All-Around-Gold-Tokyo-Olympics-slide.jpg?w=900&quality=86&strip=all",
-            name: "Sunisa Lee",
-            medals: [
-              {
-                type: "gold",
-                event:
-                  "Women's artistic individual all-around · Artistic gymnastics",
-              },
-              {
-                type: "silver",
-                event: "Women's artistic team all-around · Artistic gymnastics",
-              },
-              {
-                type: "bronze",
-                event: "Women's uneven bars · Artistic gymnastics",
-              },
-              {
-                type: "bronze",
-                event: "Women's uneven bars · Artistic gymnastics",
-              },
-              {
-                type: "bronze",
-                event: "Women's uneven bars · Artistic gymnastics",
-              },
-              {
-                type: "gold",
-                event:
-                  "Women's artistic individual all-around · Artistic gymnastics",
-              },
-            ],
-          };
-          console.log(data.name);
+          let data = response[0];
+          if (data.name !== "unknown") runFireworks();
 
           // Output the response to the PRE block
           codeBlock.innerText = JSON.stringify(response, null, 2);
@@ -213,6 +178,7 @@
           // Olympic Stuff
           athleteName.innerText = data.name;
 
+          medals.innerHTML = "";
           data.medals.forEach((medal) => {
             let li = document.createElement("li");
             let medalType = "";
