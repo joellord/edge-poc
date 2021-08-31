@@ -109,6 +109,10 @@
         ></ul>
       </div>
 
+      <audio>
+        <source src="/audio/fanfare.wav" type="audio/wav" />
+      </audio>
+
       <footer class="text-center">
         Powered by <a href="">Verizon 5G</a> and
         <a href="https://mongodb.com">MongoDB</a>.
@@ -173,7 +177,7 @@
           if (data.name !== "unknown") runFireworks();
 
           // Output the response to the PRE block
-          codeBlock.innerText = JSON.stringify(response, null, 2);
+          //codeBlock.innerText = JSON.stringify(response, null, 2);
 
           // Olympic Stuff
           athleteName.innerText = data.name;
@@ -202,6 +206,7 @@
           });
 
           document.querySelector("#loading").classList.add("hide");
+          document.querySelector("audio").play();
         };
         img.src = event.target.result;
         //img.src = data.imgSrc;
