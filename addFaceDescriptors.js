@@ -9,8 +9,8 @@ import fetch from "node-fetch";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MODELS_PATH = `${__dirname}/models`;
-const SOURCE_FILE = "sample.json";
-const EVENT_ID = "Event ID";
+const SOURCE_FILE = "short.json";
+const EVENT_ID = "Tokyo2020";
 
 const peopleData = JSON.parse(fs.readFileSync(SOURCE_FILE).toString());
 
@@ -33,30 +33,35 @@ const downloadImage = async (uri, filename) => {
     return fs.copyFileSync(`${__dirname}/assets/default_profile.png`, filename);
   }
 
-  throw new Error(`Unexpected response ${response.status} ${response.statusText}`);
+  throw new Error(
+    `Unexpected response ${response.status} ${response.statusText}`
+  );
 };
 
-const getDescriptors = async filename => {
+const getDescriptors = async (filename) => {
   let faceDescriptors = {};
   try {
     const input = await nodeCanvas.loadImage(filename);
-    const fullFaceDescription = await faceapi.detectSingleFace(input).withFaceLandmarks().withFaceDescriptor();
+    const fullFaceDescription = await faceapi
+      .detectSingleFace(input)
+      .withFaceLandmarks()
+      .withFaceDescriptor();
 
     if (!fullFaceDescription) {
       console.log(`No faces detected for ${filename}`);
       return;
     }
-  
-    faceDescriptors = fullFaceDescription.descriptor;
-  } catch(e) {
+
+    faceDescriptors = Array.from(fullFaceDescription.descriptor);
+  } catch (e) {
     console.log(e);
   }
-  
+
   return faceDescriptors;
-}
+};
 
 async function main() {
-  let newPeopleData = peopleData.map(async personData => {
+  let newPeopleData = peopleData.map(async (personData) => {
     let uri = personData.imgSrc;
     let filename = uri.split("/");
     filename = filename[filename.length - 1];
@@ -67,24 +72,25 @@ async function main() {
     }
     filename = `${__dirname}/tmp/${filename}`;
     await downloadImage(uri, filename);
-  
+
     let descriptors = await getDescriptors(filename);
     personData.descriptors = descriptors;
     personData.eventId = EVENT_ID;
     try {
       await fs.unlinkSync(filename);
-    } catch(e) {
+    } catch (e) {
       console.log(e);
     }
     return personData;
   });
 
-  Promise.all(newPeopleData).then(d => {
+  Promise.all(newPeopleData).then((d) => {
     console.log(newPeopleData);
-    fs.writeFileSync(SOURCE_FILE.replace(".json", "-withDescriptors.json"), JSON.stringify(d));
+    fs.writeFileSync(
+      SOURCE_FILE.replace(".json", "-withDescriptors.json"),
+      JSON.stringify(d)
+    );
   });
 }
 
 main();
-
-
